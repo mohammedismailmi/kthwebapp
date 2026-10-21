@@ -1,4 +1,15 @@
+---
+title: Mass Spec AI Calibration
+emoji: 🔬
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🔬 Mass Spectrometer AI Calibration System
+
 
 An AI-powered virtual calibration platform for Residual Gas Analyzers (RGA), developed at **KTH Royal Institute of Technology**.
 
