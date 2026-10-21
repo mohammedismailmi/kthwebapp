@@ -27,5 +27,6 @@ ENV HOME=/home/user \
 # Expose port 7860 (HF Spaces default)
 EXPOSE 7860
 
-# Run the FastAPI server
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "7860"]
+# Run the FastAPI server (uses PORT env var if provided by Render, fallback to 7860)
+CMD ["sh", "-c", "uvicorn server:app --host 0.0.0.0 --port ${PORT:-7860}"]
+
