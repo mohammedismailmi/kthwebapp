@@ -6,3 +6,5 @@ uploads/
 *.db
 !data/
 .DS_Store
+peft_adapter_v9/
+

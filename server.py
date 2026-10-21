@@ -1,8 +1,5 @@
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+from dotenv import load_dotenv
+load_dotenv()
 
 import os
 import io
@@ -47,8 +44,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 os.makedirs(STATIC_DIR, exist_ok=True)
 
-MASTER_DATASET_PATH = os.path.join(BASE_DIR, "data", "master_pinn_dataset.csv")
-SAMPLE_AIR_PATH = os.path.join(BASE_DIR, "data", "compressed_air.csv")
+_local_master = os.path.join(BASE_DIR, "data", "master_pinn_dataset.csv")
+MASTER_DATASET_PATH = _local_master if os.path.exists(_local_master) else "/Users/mi/Desktop/KTH internship/massspec_kth/dataset/zzz_converted_csv/kth/training/master_pinn_dataset.csv"
+
+_local_air = os.path.join(BASE_DIR, "data", "compressed_air.csv")
+SAMPLE_AIR_PATH = _local_air if os.path.exists(_local_air) else "/Users/mi/Desktop/KTH internship/massspec_kth/dataset/zzz_converted_csv/kth/training/compressed_air.csv"
+
 
 # In-memory store for generated virtual calibrations to allow fast download
 GENERATED_FILES = {}
