@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Researcher Authentication | KTH Mass Spectrometry Platform</title>
+  
+  <!-- Official Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- KTH Academic Styling -->
+  <link rel="stylesheet" href="/static/index.css?v=2.3">
+  <style>
+    body {
+      background-color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .login-header {
+      background-color: var(--kth-blue, #00005d);
+      color: #ffffff;
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #00003c;
+    }
+
+    .login-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+    }
+
+    .auth-card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 480px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+      padding: 2.25rem;
+    }
+
+    .auth-card-header {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+
+    .auth-card-header h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #00005d;
+      letter-spacing: -0.01em;
+    }
+
+    .auth-card-header p {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-top: 0.35rem;
+      line-height: 1.45;
+    }
+
+    /* Auth Mode Tabs */
+    .auth-tabs {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.75rem;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      text-align: center;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #64748b;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      margin-bottom: -2px;
+    }
+
+    .auth-tab-btn.active {
+      color: #00005d;
+      border-bottom-color: #00005d;
+    }
+
+    .auth-tab-btn:hover {
+      color: #00005d;
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 1.15rem;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 0.35rem;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.9rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      color: #0f172a;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .form-input:focus {
+      border-color: #00005d;
+      box-shadow: 0 0 0 3px rgba(0, 0, 93, 0.12);
+    }
+
+    .password-wrapper {
+      position: relative;
+    }
+
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 0.78rem;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 600;
+      padding: 4px;
+    }
+
+    .password-toggle:hover {
+      color: #00005d;
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background-color: #00005d;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+      margin-top: 0.75rem;
+    }
+
+    .btn-submit:hover {
+      background-color: #000045;
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .or-divider {
+      text-align: center;
+      margin: 1.5rem 0;
+      position: relative;
+    }
+
+    .or-divider::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    .or-divider span {
+      position: relative;
+      background: #ffffff;
+      padding: 0 0.85rem;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    /* Google Auth Container */
+    .google-signin-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    #g_id_signin {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    .btn-google-custom {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      color: #1e293b;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .btn-google-custom:hover {
+      background-color: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .google-config-link {
+      font-size: 0.76rem;
+      color: #64748b;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 0.35rem;
+    }
+
+    .google-config-link:hover {
+      color: #00005d;
+    }
+
+    .auth-alert {
+      display: none;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      line-height: 1.4;
+    }
+
+    .auth-alert.error {
+      display: block;
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+    }
+
+    .auth-alert.success {
+      display: block;
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+    }
+
+    .back-home-link {
+      display: block;
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.86rem;
+      color: #64748b;
+      text-decoration: none;
+    }
+
+    .back-home-link:hover {
+      color: #00005d;
+      text-decoration: underline;
+    }
+
+    /* Client ID Config Modal */
+    .config-modal-backdrop {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 50, 0.5);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .config-modal-backdrop.active {
+      display: flex;
+    }
+
+    .config-modal-card {
+      background: #ffffff;
+      width: 90%;
+      max-width: 480px;
+      border-radius: 8px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+      padding: 1.75rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top KTH Header -->
+  <header class="login-header">
+    <div class="logo-group">
+      <div class="kth-crest">KTH</div>
+      <div class="logo-text">
+        <h1 style="font-size: 1.15rem; color: #ffffff;">KTH Royal Institute of Technology</h1>
+        <p style="font-size: 0.78rem; color: rgba(255, 255, 255, 0.85);">Mass Spectrometry Laboratory • Virtual Calibration Portal</p>
+      </div>
+    </div>
+    <a href="/" style="color: #ffffff; text-decoration: none; font-size: 0.85rem; font-weight: 500;">
+      ← Return to Portal
+    </a>
+  </header>
+
+  <!-- Login Card Container -->
+  <div class="login-container">
+    <div class="auth-card">
+      <div class="auth-card-header">
+        <h2 id="card-heading">Researcher Sign In</h2>
+        <p id="card-subheading">Access your private virtual calibration history and generation model.</p>
+      </div>
+
+      <!-- Auth Tabs: Sign In vs Register -->
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab-btn active" id="tab-btn-signin">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="tab-btn-register">Create Account</button>
+      </div>
+
+      <!-- Alert Box for Error / Success -->
+      <div class="auth-alert" id="auth-alert"></div>
+
+      <!-- 1. SIGN IN FORM -->
+      <form id="form-signin">
+        <div class="form-group">
+          <label class="form-label" for="signin-email">Organization / University Email <span style="color: #dc2626;">*</span></label>
+          <input type="email" id="signin-email" class="form-input" placeholder="e.g. ismail@kth.se" value="ismail@kth.se" required>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+            <label class="form-label" for="signin-password" style="margin-bottom: 0;">Password <span style="color: #dc2626;">*</span></label>
+          </div>
+          <div class="password-wrapper">
+            <input type="password" id="signin-password" class="form-input" placeholder="Enter your password" required>
+            <button type="button" class="password-toggle" id="toggle-signin-pwd">SHOW</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="btn-submit-signin">
+          Sign In
+        </button>
+
+        <div class="or-divider">
+          <span>or sign in with Google</span>
+        </div>
+
+        <!-- Official Google Identity Services Container -->
+        <div class="google-signin-wrapper">
+          <div id="g_id_signin"></div>
+          
+          <!-- Fallback button if Google Client ID not yet entered -->
+          <button type="button" class="btn-google-custom" id="btn-google-init" style="display: none;">
+            <svg width="18" height="18" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            Sign in with Google Workspace
+          </button>
+
+          <span class="google-config-link" id="link-configure-google">⚙️ Configure Google Cloud Client ID</span>
+        </div>
+      </form>
+
+      <!-- 2. REGISTER / CREATE ACCOUNT FORM -->
+      <form id="form-register" style="display: none;">
+        <div class="form-group">
+          <label class="form-label" for="reg-name">Full Name <span style="color: #dc2626;">*</span></label>
+          <input type="text" id="reg-name" class="form-input" placeholder="e.g. Mohammed Ismail" value="Mohammed Ismail" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-email">Institutional Email <span style="color: #dc2626;">*</span></label>
+          <input type="email" id="reg-email" class="form-input" placeholder="e.g. ismail@kth.se" value="ismail@kth.se" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-org">University or Organization</label>
+          <input type="text" id="reg-org" class="form-input" value="KTH Royal Institute of Technology" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-password">Create Password <span style="color: #dc2626;">*</span></label>
+          <div class="password-wrapper">
+            <input type="password" id="reg-password" class="form-input" placeholder="Minimum 6 characters" minlength="6" required>
+            <button type="button" class="password-toggle" id="toggle-reg-pwd">SHOW</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reg-confirm-password">Confirm Password <span style="color: #dc2626;">*</span></label>
+          <input type="password" id="reg-confirm-password" class="form-input" placeholder="Re-enter password" minlength="6" required>
+        </div>
+
+        <button type="submit" class="btn-submit" id="btn-submit-register">
+          Create Account & Sign In
+        </button>
+      </form>
+
+      <a href="/?tab=archive" class="back-home-link">
+        ← Browse Contributor Calibration Files without signing in
+      </a>
+    </div>
+  </div>
+
+  <!-- Google Cloud OAuth Client ID Config Modal -->
+  <div class="config-modal-backdrop" id="modal-google-config">
+    <div class="config-modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-size: 1.15rem; color: #00005d; margin: 0;">Google OAuth 2.0 Client ID</h3>
+        <button type="button" id="btn-close-google-config" style="background:none; border:none; font-size:1.4rem; cursor:pointer;">&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b; line-height: 1.45; margin-bottom: 1.25rem;">
+        To connect to Google's Identity Services for live authentication, enter your Google OAuth 2.0 Web Application Client ID from the 
+        <a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color: #00005d; font-weight:600;">Google Cloud Console</a>.
+      </p>
+      
+      <div class="form-group">
+        <label class="form-label" for="input-google-client-id">OAuth Client ID</label>
+        <input type="text" id="input-google-client-id" class="form-input" placeholder="e.g. 123456789-abcdef.apps.googleusercontent.com">
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" class="btn-submit" id="btn-save-google-client-id" style="width: auto; margin-top: 0; padding: 0.65rem 1.25rem;">
+          Save & Initialize Google Button
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectTab = urlParams.get('redirect') || 'consumer';
+
+      const tabBtnSignin = document.getElementById('tab-btn-signin');
+      const tabBtnRegister = document.getElementById('tab-btn-register');
+      const formSignin = document.getElementById('form-signin');
+      const formRegister = document.getElementById('form-register');
+      const cardHeading = document.getElementById('card-heading');
+      const cardSubheading = document.getElementById('card-subheading');
+      const authAlert = document.getElementById('auth-alert');
+
+      function showAlert(msg, type = 'error') {
+        authAlert.textContent = msg;
+        authAlert.className = `auth-alert ${type}`;
+      }
+
+      function clearAlert() {
+        authAlert.textContent = '';
+        authAlert.className = 'auth-alert';
+      }
+
+      // Tab switching
+      tabBtnSignin.addEventListener('click', () => {
+        tabBtnSignin.classList.add('active');
+        tabBtnRegister.classList.remove('active');
+        formSignin.style.display = 'block';
+        formRegister.style.display = 'none';
+        cardHeading.textContent = 'Researcher Sign In';
+        cardSubheading.textContent = 'Access your private virtual calibration history and generation model.';
+        clearAlert();
+      });
+
+      tabBtnRegister.addEventListener('click', () => {
+        tabBtnRegister.classList.add('active');
+        tabBtnSignin.classList.remove('active');
+        formSignin.style.display = 'none';
+        formRegister.style.display = 'block';
+        cardHeading.textContent = 'Create Researcher Account';
+        cardSubheading.textContent = 'Register with your institutional credentials to generate calibrations.';
+        clearAlert();
+      });
+
+      // Password toggle helpers
+      function setupToggle(btnId, inputId) {
+        const btn = document.getElementById(btnId);
+        const inp = document.getElementById(inputId);
+        if (btn && inp) {
+          btn.addEventListener('click', () => {
+            if (inp.type === 'password') {
+              inp.type = 'text';
+              btn.textContent = 'HIDE';
+            } else {
+              inp.type = 'password';
+              btn.textContent = 'SHOW';
+            }
+          });
+        }
+      }
+      setupToggle('toggle-signin-pwd', 'signin-password');
+      setupToggle('toggle-reg-pwd', 'reg-password');
+
+      function handleAuthSuccess(user, message) {
+        localStorage.setItem('kth_massspec_user', JSON.stringify(user));
+        showAlert(message || `Welcome, ${user.name}! Redirecting...`, 'success');
+        setTimeout(() => {
+          window.location.href = `/?tab=${redirectTab}`;
+        }, 500);
+      }
+
+      // -------------------------------------------------------------
+      // 1. Email + Password Authentication
+      // -------------------------------------------------------------
+      formSignin.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const email = document.getElementById('signin-email').value.trim();
+        const password = document.getElementById('signin-password').value;
+        const btn = document.getElementById('btn-submit-signin');
+
+        btn.disabled = true;
+        btn.textContent = 'Signing in...';
+
+        try {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.user) {
+            handleAuthSuccess(data.user, `Signed in successfully as ${data.user.name}`);
+          } else {
+            showAlert(data.detail || 'Sign-in failed. Please check your credentials.', 'error');
+          }
+        } catch (err) {
+          showAlert('Network error: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+        }
+      });
+
+      // -------------------------------------------------------------
+      // 2. Account Registration
+      // -------------------------------------------------------------
+      formRegister.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const name = document.getElementById('reg-name').value.trim();
+        const email = document.getElementById('reg-email').value.trim();
+        const org = document.getElementById('reg-org').value.trim() || 'KTH Royal Institute of Technology';
+        const password = document.getElementById('reg-password').value;
+        const confirmPassword = document.getElementById('reg-confirm-password').value;
+        const btn = document.getElementById('btn-submit-register');
+
+        if (password !== confirmPassword) {
+          showAlert('Passwords do not match. Please re-enter.', 'error');
+          return;
+        }
+
+        if (password.length < 6) {
+          showAlert('Password must be at least 6 characters.', 'error');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Creating account...';
+
+        try {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email, organization: org, password })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.user) {
+            handleAuthSuccess(data.user, 'Account registered successfully!');
+          } else {
+            showAlert(data.detail || 'Registration failed.', 'error');
+          }
+        } catch (err) {
+          showAlert('Network error: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Create Account & Sign In';
+        }
+      });
+
+      // -------------------------------------------------------------
+      // 3. Official Google Identity Services (GIS) Integration
+      // -------------------------------------------------------------
+      let activeGoogleClientId = localStorage.getItem('kth_google_client_id') || '';
+
+      const modalGoogleConfig = document.getElementById('modal-google-config');
+      const linkConfigureGoogle = document.getElementById('link-configure-google');
+      const btnCloseGoogleConfig = document.getElementById('btn-close-google-config');
+      const inputGoogleClientId = document.getElementById('input-google-client-id');
+      const btnSaveGoogleClientId = document.getElementById('btn-save-google-client-id');
+      const btnGoogleInit = document.getElementById('btn-google-init');
+      const gIdSigninContainer = document.getElementById('g_id_signin');
+
+      linkConfigureGoogle.addEventListener('click', () => {
+        inputGoogleClientId.value = activeGoogleClientId;
+        modalGoogleConfig.classList.add('active');
+      });
+
+      btnCloseGoogleConfig.addEventListener('click', () => {
+        modalGoogleConfig.classList.remove('active');
+      });
+
+      btnSaveGoogleClientId.addEventListener('click', () => {
+        const val = inputGoogleClientId.value.trim();
+        if (val) {
+          activeGoogleClientId = val;
+          localStorage.setItem('kth_google_client_id', val);
+          modalGoogleConfig.classList.remove('active');
+          initGoogleSignIn(val);
+          showAlert('Google Client ID saved. Button initialized!', 'success');
+        }
+      });
+
+      // Google Token Callback Handler
+      async function handleGoogleCredentialResponse(response) {
+        if (!response || !response.credential) return;
+        showAlert('Verifying Google credentials with KTH server...', 'success');
+
+        try {
+          const res = await fetch('/api/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              credential: response.credential,
+              client_id: activeGoogleClientId
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.user) {
+            handleAuthSuccess(data.user, `Signed in via Google as ${data.user.name}`);
+          } else {
+            showAlert(data.detail || 'Google authentication verification failed.', 'error');
+          }
+        } catch (err) {
+          showAlert('Google Auth Server error: ' + err.message, 'error');
+        }
+      }
+
+      function initGoogleSignIn(clientId) {
+        if (!clientId) {
+          gIdSigninContainer.style.display = 'none';
+          btnGoogleInit.style.display = 'flex';
+          return;
+        }
+
+        if (window.google && window.google.accounts && window.google.accounts.id) {
+          try {
+            google.accounts.id.initialize({
+              client_id: clientId,
+              callback: handleGoogleCredentialResponse,
+              auto_select: false,
+              cancel_on_tap_outside: true
+            });
+
+            gIdSigninContainer.innerHTML = '';
+            gIdSigninContainer.style.display = 'flex';
+            btnGoogleInit.style.display = 'none';
+
+            google.accounts.id.renderButton(gIdSigninContainer, {
+              theme: "outline",
+              size: "large",
+              width: 380,
+              text: "continue_with",
+              shape: "rectangular",
+              logo_alignment: "left"
+            });
+          } catch (e) {
+            console.warn("GIS render error:", e);
+            gIdSigninContainer.style.display = 'none';
+            btnGoogleInit.style.display = 'flex';
+          }
+        } else {
+          // Retry when library loads
+          setTimeout(() => initGoogleSignIn(clientId), 400);
+        }
+      }
+
+      // Fallback click on button opens config if no client ID is present
+      btnGoogleInit.addEventListener('click', () => {
+        inputGoogleClientId.value = activeGoogleClientId;
+        modalGoogleConfig.classList.add('active');
+      });
+
+      // Fetch server Google Client ID config
+      fetch('/api/auth/config')
+        .then(r => r.json())
+        .then(cfg => {
+          if (cfg.google_client_id) {
+            activeGoogleClientId = cfg.google_client_id;
+            localStorage.setItem('kth_google_client_id', activeGoogleClientId);
+          }
+          initGoogleSignIn(activeGoogleClientId);
+        })
+        .catch(() => {
+          initGoogleSignIn(activeGoogleClientId);
+        });
+    });
+  </script>
+</body>
+</html>

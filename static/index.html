@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KTH Mass Spectrometry Calibration Platform</title>
+  
+  <!-- Plotly.js for Scientific Charts -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  
+  <!-- KTH Academic Light Theme -->
+  <link rel="stylesheet" href="/static/index.css?v=2.2">
+</head>
+<body>
+
+  <!-- KTH Institutional Header -->
+  <header class="header">
+    <div class="logo-group">
+      <div class="kth-crest">KTH</div>
+      <div class="logo-text">
+        <h1>KTH Royal Institute of Technology</h1>
+        <p>Mass Spectrometry Laboratory • Virtual Calibration Platform (Gemma 2B V9)</p>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="header-status">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="txt-engine">Model: Connecting...</span>
+        </div>
+        <div class="status-badge">
+          <span id="txt-db">Database: Connected</span>
+        </div>
+      </div>
+
+      <!-- Authentication Profile Section -->
+      <div class="auth-section" id="auth-section">
+        <!-- Logged Out State: Clean Sign In button (direct link to /login) -->
+        <a href="/login" class="btn-auth-signin" id="btn-header-signin">Sign In</a>
+
+        <!-- Logged In State: ONLY the clean initials circle (e.g. MI) -->
+        <div class="user-initials-wrapper" id="user-initials-wrapper" style="display: none;">
+          <button type="button" class="user-initials-circle" id="user-initials-circle" title="Account Menu">MI</button>
+          
+          <!-- Profile Dropdown Menu -->
+          <div class="user-dropdown-menu" id="user-dropdown-menu">
+            <div class="dropdown-header">
+              <div class="dropdown-name" id="dropdown-user-name">Mohammed Ismail</div>
+              <div class="dropdown-email" id="dropdown-user-email">ismail@kth.se</div>
+              <div class="dropdown-org" id="dropdown-user-org">KTH Royal Institute of Technology</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <button type="button" class="dropdown-item btn-signout-item" id="btn-logout">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- Tab Navigation -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="consumer">
+        <span>Virtual Calibration Generator</span>
+        <span class="tab-badge">Consumer</span>
+      </button>
+
+      <button class="tab-btn" data-tab="contributor">
+        <span>Laboratory Data Ingestion</span>
+        <span class="tab-badge">Contributor</span>
+      </button>
+
+      <button class="tab-btn" data-tab="archive">
+        <span>Contributor Calibration Files</span>
+        <span class="tab-badge" id="tab-badge-count">0</span>
+      </button>
+
+      <button class="tab-btn" data-tab="history">
+        <span>Consumer Prediction History</span>
+        <span class="tab-badge" id="tab-badge-preds">0</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: CONSUMER PORTAL (VIRTUAL CALIBRATION) -->
+    <section id="tab-consumer" class="tab-content active">
+      <div class="section-intro">
+        <h2>Virtual Calibration Generator</h2>
+        <p>Synthesize complete multi-AMU mass spectrometer calibration profiles from ambient air scans using the hosted Gemma-2B ZeroGPU engine.</p>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Input Column 1: Background Scan & Target Gas -->
+        <div class="card">
+          <div class="card-heading">
+            <span>1. Baseline Air Run & Gas Selection</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Background Air Scan CSV (Hiden RGA export) <span class="required">*</span></label>
+            <div class="file-upload-box" id="cons-dropzone">
+              <input type="file" id="cons-air-file" accept=".csv" style="display: none;">
+              <div class="upload-icon">↑</div>
+              <div class="upload-title">Choose CSV file or drag here</div>
+              <div class="upload-subtitle">Raw baseline scan containing 28_amu (N2) & 32_amu (O2) peaks</div>
+            </div>
+            
+            <div class="file-tag" id="cons-air-preview">
+              <span class="file-tag-name" id="cons-air-name">filename.csv</span>
+              <button type="button" class="file-tag-remove" id="cons-air-remove" title="Remove file">&times;</button>
+            </div>
+
+            <!-- Reference Benchmark Option -->
+            <div class="ref-file-bar">
+              <span>Standard KTH reference scan:</span>
+              <button type="button" class="btn-link" id="btn-use-sample">Load compressed_air.csv</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.5rem;">
+            <label class="form-label" for="cons-gas-input">Target Calibration Gas Species</label>
+            <div class="autocomplete-wrapper">
+              <input type="text" id="cons-gas-input" class="form-input" placeholder="Type gas species (e.g., O2, CH4, N2O, CO2)..." value="Oxygen (O2)" autocomplete="off">
+              <div class="autocomplete-dropdown" id="gas-suggestions"></div>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Type to filter suggestions or enter custom gas species</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cons-conc-input">Gas Concentration (%)</label>
+            <div class="input-with-suffix">
+              <input type="number" id="cons-conc-input" class="form-input" min="0" max="100" step="0.1" value="1.0" placeholder="e.g. 1.0">
+              <span class="input-suffix">%</span>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem; display: block;" id="conc-hint">
+              Physical benchmarks: O2 (1.0%), CH4 (5.0%), N2O (1.0%)
+            </span>
+          </div>
+        </div>
+
+        <!-- Input Column 2: Instrument Specs & Generate Action -->
+        <div class="card">
+          <div class="card-heading">
+            <span>2. Instrument Parameters</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="cons-brand">Instrument Model</label>
+            <input type="text" id="cons-brand" class="form-input" value="Hiden Analytical HPR-20 QIC">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="cons-vac">Baseline Pressure (mBar)</label>
+              <input type="text" id="cons-vac" class="form-input" value="1.00e-05">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="cons-detector">Detector Mode</label>
+              <select id="cons-detector" class="form-select">
+                <option value="Faraday Cup" selected>Faraday Cup</option>
+                <option value="Electron Multiplier">Secondary Electron Multiplier (SEM)</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-top: 2rem;">
+            <button type="button" class="btn-primary" id="btn-generate">
+              Generate Virtual Calibration
+            </button>
+          </div>
+
+          <!-- Professional Progress State -->          <div class="progress-box" id="neural-overlay">
+            <div class="progress-header">
+              <div class="standard-spinner"></div>
+              <div class="progress-title">Computing Calibration Fingerprint via Hosted ZeroGPU API...</div>
+            </div>
+            <div class="progress-steps-list">
+              <div class="progress-step" id="step-1">
+                <span class="step-indicator">·</span>
+                <span>Validating air scan CSV data format</span>
+              </div>
+              <div class="progress-step" id="step-2">
+                <span class="step-indicator">·</span>
+                <span>Extracting pressure, N2 (28 AMU), & Ar (40 AMU) baselines</span>
+              </div>
+              <div class="progress-step" id="step-3">
+                <span class="step-indicator">·</span>
+                <span>Inferring multi-AMU log fingerprint (Hugging Face ZeroGPU API)</span>
+              </div>
+              <div class="progress-step" id="step-4">
+                <span class="step-indicator">·</span>
+                <span>Synthesizing time-series dataset & ground truth verification</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RESULTS SECTION -->
+      <div class="results-section" id="results-container">
+        
+        <!-- Primary Quantitation KPI Metrics -->
+        <div class="kpi-grid">
+          <div class="kpi-box highlight" id="kpi-box-accuracy">
+            <div class="kpi-title">Primary Quantitation Accuracy</div>
+            <div class="kpi-stat" id="kpi-accuracy">--%</div>
+            <div class="kpi-meta" id="kpi-benchmark-name">vs. Physical Ground Truth</div>
+          </div>
+
+
+          <div class="kpi-box">
+            <div class="kpi-title">Baseline Vacuum</div>
+            <div class="kpi-stat" id="kpi-vacuum">--</div>
+            <div class="kpi-meta">mBar</div>
+          </div>
+
+          <div class="kpi-box">
+            <div class="kpi-title">N2 Baseline (28 AMU)</div>
+            <div class="kpi-stat" id="kpi-n2">--</div>
+            <div class="kpi-meta">Amperes</div>
+          </div>
+
+          <div class="kpi-box">
+            <div class="kpi-title">Argon Baseline (40 AMU)</div>
+            <div class="kpi-stat" id="kpi-ar">--</div>
+            <div class="kpi-meta">Amperes</div>
+          </div>
+        </div>
+
+        <!-- Plotly Chart Card -->
+        <div class="chart-container-box">
+          <div class="chart-top-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div class="chart-title-text">
+              <h3 id="chart-main-title">Primary Peak Quantitation Comparison</h3>
+              <p id="chart-subhead">Physical Ground Truth vs. AI Virtual Model (5% Industrial Tolerance Window)</p>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn-secondary active" id="btn-chart-primary" style="font-weight: 600;">🎯 Primary Peak Comparison</button>
+              <button type="button" class="btn-secondary" id="btn-chart-multi">📊 Multi-AMU Fingerprint</button>
+              <button type="button" class="btn-secondary" id="btn-toggle-scale">Scale: Linear</button>
+            </div>
+          </div>
+
+          <div id="spectral-chart"></div>
+        </div>
+
+        <!-- Accuracy Table -->
+        <div class="card" style="margin-bottom: 1.75rem;">
+          <div class="card-heading">
+            <span>Spectral Peak Accuracy Analysis</span>
+          </div>
+          <div style="padding: 0.75rem 1.25rem; background: var(--bg-surface); border-bottom: 1px solid var(--border-light); font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+            Primary quantitation accuracy is evaluated strictly on the target mass channel (★) as specified for each gas (e.g. 32 AMU for O2, 15 AMU methyl peak for CH4). Secondary cracking fragments are displayed for spectral fingerprint validation and are excluded from overall quantitation accuracy.
+          </div>
+          <div class="data-table-container">
+            <table class="institutional-table">
+              <thead>
+                <tr>
+                  <th>AMU Peak</th>
+                  <th>Physical Ground Truth Mean (A)</th>
+                  <th>Virtual Calibration Mean (A)</th>
+                  <th>Relative Error (%)</th>
+                  <th>Accuracy Score</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-tbody">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Export Action Panel -->
+        <div class="export-panel">
+          <div class="export-details">
+            <h4 id="download-title">Calibration File Ready for Export</h4>
+            <p id="download-desc">Synthesized 150-row RGA dataset formatted for instrument calibration.</p>
+          </div>
+          <button type="button" class="btn-primary" id="btn-download" style="width: auto; padding: 0.75rem 1.75rem;">
+            Download Calibration CSV
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: CONTRIBUTOR PORTAL -->
+    <section id="tab-contributor" class="tab-content">
+      <div class="section-intro">
+        <h2>Laboratory Benchmark Data Ingestion</h2>
+        <p>Deposit experimental mass spectrometer benchmark scans to expand the institutional calibration database.</p>
+      </div>
+
+      <!-- Active Contributor Identity Banner -->
+      <div class="contributor-identity-box">
+        <div>
+          <span style="font-size: 0.8rem; font-weight: 600; text-transform: uppercase; color: var(--kth-blue);">Submitting Contributor:</span>
+          <strong id="contrib-auth-name" style="color: var(--kth-blue); margin-left: 0.4rem;">Anonymous Contributor</strong>
+          <span id="contrib-auth-org" style="color: var(--text-muted); font-size: 0.85rem; margin-left: 0.5rem;">(KTH Laboratory)</span>
+        </div>
+        <button type="button" class="btn-secondary" id="btn-change-contributor" style="font-size: 0.8rem; padding: 0.35rem 0.75rem;">
+          Switch Identity / Login
+        </button>
+      </div>
+
+      <form id="contrib-form">
+        <div class="grid-2col">
+          <!-- Files -->
+          <div class="card">
+            <div class="card-heading">
+              <span>Required Scan Files</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Background Air Scan CSV <span class="required">*</span></label>
+              <div class="file-upload-box" id="dz-contrib-air">
+                <input type="file" id="contrib-air-file" accept=".csv" style="display: none;" required>
+                <div class="upload-icon">↑</div>
+                <div class="upload-title">Select Background Air CSV</div>
+                <div class="upload-subtitle">Ambient baseline scan</div>
+              </div>
+              <div class="file-tag" id="prev-contrib-air">
+                <span class="file-tag-name" id="name-contrib-air"></span>
+                <button type="button" class="file-tag-remove" id="rm-contrib-air">&times;</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Calibration Gas Scan CSV <span class="required">*</span></label>
+              <div class="file-upload-box" id="dz-contrib-cal">
+                <input type="file" id="contrib-cal-file" accept=".csv" style="display: none;" required>
+                <div class="upload-icon">↑</div>
+                <div class="upload-title">Select Calibration Gas CSV</div>
+                <div class="upload-subtitle">Target gas exposure run</div>
+              </div>
+              <div class="file-tag" id="prev-contrib-cal">
+                <span class="file-tag-name" id="name-contrib-cal"></span>
+                <button type="button" class="file-tag-remove" id="rm-contrib-cal">&times;</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Instrument Documentation (PDF / TXT / Image) [Optional]</label>
+              <div class="file-upload-box" id="dz-contrib-spec">
+                <input type="file" id="contrib-spec-file" accept=".pdf,.txt,.png,.jpg,.jpeg" style="display: none;">
+                <div class="upload-icon">↑</div>
+                <div class="upload-title">Specification Document</div>
+                <div class="upload-subtitle">Manufacturer calibration certificate or spec sheet</div>
+              </div>
+              <div class="file-tag" id="prev-contrib-spec">
+                <span class="file-tag-name" id="name-contrib-spec"></span>
+                <button type="button" class="file-tag-remove" id="rm-contrib-spec">&times;</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata -->
+          <div class="card">
+            <div class="card-heading">
+              <span>Experimental Parameters</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="contrib-target-gas">Target Gas Species <span class="required">*</span></label>
+                <input type="text" id="contrib-target-gas" class="form-input" placeholder="e.g., Oxygen O2" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contrib-conc">Concentration (%) <span class="required">*</span></label>
+                <input type="number" id="contrib-conc" class="form-input" step="0.1" min="0" max="100" placeholder="1.0" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contrib-ref-gas">Reference / Balance Gas</label>
+              <input type="text" id="contrib-ref-gas" class="form-input" placeholder="e.g., Argon Ar" value="Argon Ar">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="contrib-brand">Instrument Brand / Model <span class="required">*</span></label>
+                <input type="text" id="contrib-brand" class="form-input" placeholder="e.g., Hiden Analytical HPR-20" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contrib-serial">Serial Number</label>
+                <input type="text" id="contrib-serial" class="form-input" placeholder="e.g., SN-10942">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="contrib-vac">Operating Pressure (mBar) <span class="required">*</span></label>
+                <input type="number" id="contrib-vac" class="form-input" step="any" placeholder="1.0e-5" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="contrib-detector">Detector Type</label>
+                <select id="contrib-detector" class="form-select">
+                  <option value="Faraday Cup">Faraday Cup</option>
+                  <option value="Electron Multiplier">Secondary Electron Multiplier (SEM)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contrib-emission">Ionization Current / Voltage</label>
+              <input type="number" id="contrib-emission" class="form-input" step="any" placeholder="70.0">
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+              <button type="submit" class="btn-primary" id="btn-submit-contrib">
+                Submit Ingestion Record
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- TAB 3: CONTRIBUTOR CALIBRATION REPOSITORY -->
+    <section id="tab-archive" class="tab-content">
+      <div class="section-intro">
+        <h2>Contributor Calibration Files Repository</h2>
+        <p>All laboratory calibration and baseline datasets ingested by institutional contributors.</p>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+          <input type="text" id="db-search" class="form-input" style="max-width: 450px;" placeholder="Filter by gas, contributor name, organization, model...">
+          <button type="button" class="btn-secondary" id="btn-refresh-db">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            Refresh Repository
+          </button>
+        </div>
+
+        <div class="data-table-container">
+          <table class="institutional-table">
+            <thead>
+              <tr>
+                <th>Date (UTC)</th>
+                <th>Contributor</th>
+                <th>Organization</th>
+                <th>Target Gas</th>
+                <th>Conc (%)</th>
+                <th>Instrument Model</th>
+                <th>Scan Files</th>
+                <th>Submission ID</th>
+              </tr>
+            </thead>
+            <tbody id="archive-tbody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: CONSUMER PREDICTION HISTORY -->
+    <section id="tab-history" class="tab-content">
+      <div class="section-intro">
+        <h2>Consumer Prediction History & Logs</h2>
+        <p>Private audit trail of virtual calibration profiles generated by your researcher account using the AI model.</p>
+      </div>
+
+      <!-- Auth Gate Card: Displayed when researcher is NOT signed in -->
+      <div class="card auth-gate-card" id="history-auth-gate" style="display: none; text-align: center; padding: 3rem 2rem;">
+        <div class="auth-gate-icon">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--kth-blue)" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h3 style="color: var(--kth-blue); font-size: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem;">Sign-In Required to View History</h3>
+        <p style="color: var(--text-muted); font-size: 0.92rem; max-width: 540px; margin: 0 auto 1.75rem; line-height: 1.5;">
+          Consumer prediction logs and synthesized virtual calibration datasets are strictly private to your individual researcher profile. Please sign in to view your past calibrations and export your data.
+        </p>
+        <a href="/login?redirect=history" class="btn-primary" style="display: inline-flex; width: auto; text-decoration: none; padding: 0.75rem 2rem;">
+          Sign In with Your Account
+        </a>
+      </div>
+
+      <!-- Private Prediction History Content Card: Displayed when researcher IS signed in -->
+      <div class="card" id="history-content-card">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+          <input type="text" id="pred-search" class="form-input" style="max-width: 450px;" placeholder="Filter by gas, accuracy, filename...">
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn-secondary" id="btn-refresh-preds">Refresh</button>
+            <button type="button" class="btn-secondary" id="btn-export-preds-csv">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export My History as CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <table class="institutional-table">
+            <thead>
+              <tr>
+                <th>Timestamp (UTC)</th>
+                <th>Researcher</th>
+                <th>Organization</th>
+                <th>Gas & Conc</th>
+                <th>Accuracy Score</th>
+                <th>Baseline Pressure</th>
+                <th>Exported Calibration CSV</th>
+              </tr>
+            </thead>
+            <tbody id="preds-tbody">
+              <!-- Populated dynamically for the logged-in user -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Institutional Footer -->
+    <footer class="portal-footer">
+      KTH Royal Institute of Technology • Division of Chemical Engineering & Physics • Mass Spectrometry AI Research Group
+    </footer>
+
+  </main>
+
+  <!-- Action Gatekeeping Modal Dialog (pops up when unauthenticated user tries to generate or ingest) -->
+  <div class="modal-backdrop" id="modal-gate" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="gate-modal-title">Sign In Required</h3>
+        <button type="button" class="modal-close" id="btn-close-gate-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="text-align: center; padding: 2.25rem 1.75rem;">
+        <div style="width: 52px; height: 52px; margin: 0 auto 1.25rem; border-radius: 50%; background: var(--kth-blue-subtle); display: flex; align-items: center; justify-content: center;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--kth-blue)" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h4 id="gate-action-title" style="color: var(--kth-blue); font-size: 1.18rem; margin-bottom: 0.5rem;">Authentication Required</h4>
+        <p id="gate-modal-msg" style="color: var(--text-muted); font-size: 0.92rem; line-height: 1.5; margin-bottom: 2rem;">
+          You need to sign in to generate virtual calibrations using the AI model.
+        </p>
+        <div style="display: flex; gap: 0.85rem; justify-content: center;">
+          <button type="button" class="btn-secondary" id="btn-cancel-gate" style="width: auto; padding: 0.65rem 1.25rem;">Cancel</button>
+          <a href="/login" id="btn-gate-signin" class="btn-primary" style="display: inline-flex; width: auto; padding: 0.65rem 1.75rem; text-decoration: none;">Sign In</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="/static/app.js"></script>
+</body>
+</html>

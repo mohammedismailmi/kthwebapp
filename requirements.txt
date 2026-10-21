@@ -1,0 +1,15 @@
+# Web Application Framework
+fastapi
+uvicorn
+python-multipart
+pandas
+numpy
+matplotlib
+requests
+
+# Cloud Model Client (Hugging Face ZeroGPU Space)
+gradio_client
+
+# Google Auth
+google-auth
+google-auth-oauthlib
