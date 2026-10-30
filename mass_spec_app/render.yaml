@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: mass-spec-ai-calibration
+    runtime: docker
+    plan: free
+    envVars:
+      - key: GOOGLE_CLIENT_ID
+        value: 628191051430-j7mimh3pfioi0u607cjl93is1b4malhl.apps.googleusercontent.com
+      - key: USE_HOSTED_MODEL
+        value: "true"
+      - key: HF_SPACE_ID
+        value: mohammedismailmi/v9-calibration-api

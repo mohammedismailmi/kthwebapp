@@ -1,17 +1,8 @@
----
-title: Mass Spec AI Calibration
-emoji: 🔬
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-app_port: 7860
-pinned: false
----
-
 # 🔬 Mass Spectrometer AI Calibration System
 
-
 An AI-powered virtual calibration platform for Residual Gas Analyzers (RGA), developed at **KTH Royal Institute of Technology**.
+
+The application source code, Docker setup, models, and reference data are organized inside the [`mass_spec_app`](./mass_spec_app) directory.
 
 ## Features
 
@@ -23,6 +14,7 @@ An AI-powered virtual calibration platform for Residual Gas Analyzers (RGA), dev
 
 ## Architecture
 
+- **Application Directory**: [`mass_spec_app`](./mass_spec_app)
 - **Frontend**: Pure HTML/CSS/JS with Plotly.js charts
 - **Backend**: FastAPI (Python)
 - **Model**: Gemma-2-2B-it with PEFT LoRA adapter (v9), hosted via HF ZeroGPU Space
@@ -30,7 +22,7 @@ An AI-powered virtual calibration platform for Residual Gas Analyzers (RGA), dev
 
 ## Deployment
 
-Deployed on [Render](https://render.com) via Docker.
+Deployable on **Render** (via Docker with `rootDir: mass_spec_app`) and **Hugging Face Spaces**.
 
 ## Developed By
 

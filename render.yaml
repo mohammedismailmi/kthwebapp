@@ -2,6 +2,8 @@ services:
   - type: web
     name: mass-spec-ai-calibration
     runtime: docker
+    rootDir: mass_spec_app
+    dockerfilePath: Dockerfile
     plan: free
     envVars:
       - key: GOOGLE_CLIENT_ID
